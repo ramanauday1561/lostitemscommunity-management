@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lost Items Community — Project Hub</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --outer:#d9d9d6; --page:#f4f4f2; --panel:#ffffff; --card:#F6F6F4; --line:#e7e6e2; --line2:#ececea;
+  --ink:#16181F; --muted:#6B7280; --faint:#9a9ea4;
+  --blue:#5B5FEE; --blue2:#0B6BCB; --green:#0F7B3D; --red:#B42318; --amber:#B7791F;
+  --pink:#E85D9E; --purple:#8B5CF6; --teal:#0EA5A5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--outer);font-family:'Public Sans',system-ui,sans-serif;color:var(--ink)}
+.mono{font-family:'IBM Plex Mono',monospace}
+button{font-family:inherit;cursor:pointer}
+
+.shell{max-width:1500px;margin:22px auto;background:var(--page);border-radius:28px;box-shadow:0 40px 90px -40px rgba(22,24,31,.4);display:flex;min-height:92vh;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:250px;flex:none;background:var(--page);padding:22px 16px;display:flex;flex-direction:column;border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 20px}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font:800 14px 'Public Sans'}
+.brand .name{font:800 16px 'Public Sans';letter-spacing:-.01em}
+.brand .sub{font:500 10px 'IBM Plex Mono';color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
+
+.nav-group{margin-top:18px}
+.nav-group .label{font:700 10px 'IBM Plex Mono';letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:0 10px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;font:600 13px 'Public Sans';color:var(--muted);margin-bottom:2px;border:0;background:none;width:100%;text-align:left}
+.nav-item:hover{background:#fff}
+.nav-item.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(22,24,31,.05),0 8px 18px -14px rgba(22,24,31,.35)}
+.nav-item .ic{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center;color:currentColor}
+.nav-item .count{margin-left:auto;font:700 10px 'IBM Plex Mono';color:var(--faint)}
+
+.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
+.sync-row{display:flex;align-items:center;gap:8px;font:600 11px 'IBM Plex Mono';color:var(--muted);padding:8px 6px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.synced{background:var(--green)} .dot.syncing{background:var(--amber)} .dot.offline{background:var(--red)}
+.device-btn{width:100%;text-align:left;background:#fff;border-radius:12px;padding:10px 12px;font:600 12px 'Public Sans';color:var(--ink);border:0;box-shadow:0 1px 2px rgba(22,24,31,.05)}
+.device-btn .lbl{display:block;font:500 10px 'IBM Plex Mono';color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{padding:18px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.title-block .eyebrow{font:700 10px 'IBM Plex Mono';letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.title-block h1{margin:4px 0 0;font:800 22px 'Public Sans';letter-spacing:-.02em}
+.overall-progress{display:flex;align-items:center;gap:10px;margin-left:auto}
+.ring{position:relative;width:44px;height:44px}
+.ring svg{transform:rotate(-90deg)}
+.ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 10.5px 'IBM Plex Mono';color:var(--ink)}
+
+.content{flex:1;overflow-y:auto;padding:24px 26px 60px}
+.view{display:none}
+.view.active{display:block}
+
+/* Cards, generic */
+.panel-card{background:var(--panel);border-radius:20px;padding:20px 22px;box-shadow:0 1px 2px rgba(22,24,31,.04),0 14px 30px -26px rgba(22,24,31,.35);margin-bottom:16px}
+.panel-card h2{margin:0 0 4px;font:800 17px 'Public Sans';letter-spacing:-.01em}
+.panel-card .desc{font:400 12.5px/1.6 'Public Sans';color:var(--muted);margin:0 0 14px}
+
+/* Overview stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.stat{background:var(--card);border-radius:16px;padding:14px 16px}
+.stat .num{font:800 24px 'Public Sans';letter-spacing:-.03em}
+.stat .lbl{font:600 11px 'Public Sans';color:var(--muted);margin-top:2px}
+
+.gap-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.gap-item{display:flex;gap:10px;padding:10px 12px;background:var(--card);border-radius:12px;font:500 12.5px/1.55 'Public Sans';color:var(--ink)}
+.gap-item .n{flex:none;width:20px;height:20px;border-radius:6px;background:var(--amber);color:#fff;font:700 10px 'IBM Plex Mono';display:flex;align-items:center;justify-content:center}
+
+/* Flow map */
+.flow-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.flow-toolbar button{padding:8px 13px;border-radius:11px;background:#fff;border:0;font:600 11.5px 'Public Sans';box-shadow:0 1px 2px rgba(22,24,31,.05)}
+.flow-wrap{display:flex;gap:26px;overflow-x:auto;padding-bottom:20px;background:
+  radial-gradient(circle, #dedcd7 1px, transparent 1px) 0 0/16px 16px;
+  border-radius:20px;padding:24px}
+.phase-col{flex:none;width:250px;display:flex;flex-direction:column;align-items:center}
+.phase-col-head{display:flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:6px 14px 6px 6px;box-shadow:0 1px 2px rgba(22,24,31,.06);margin-bottom:18px}
+.phase-col-head .n{width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font:700 11px 'IBM Plex Mono';display:flex;align-items:center;justify-content:center}
+.phase-col-head .t{font:700 12px 'Public Sans'}
+.phase-connector{width:2px;flex:1;background:repeating-linear-gradient(180deg,#c9c8c3 0 6px,transparent 6px 12px);margin:2px 0}
+.node{width:100%;background:#fff;border-radius:18px;padding:14px 14px 12px;box-shadow:0 1px 2px rgba(22,24,31,.06),0 12px 24px -18px rgba(22,24,31,.4);cursor:pointer;border:2px solid transparent;position:relative}
+.node:hover{transform:translateY(-1px)}
+.node.selected{border-color:var(--blue)}
+.node.done-full{background:#F4FBF6}
+.node-top{display:flex;align-items:center;gap:10px}
+.node-icon{width:32px;height:32px;border-radius:10px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.node-title{font:700 13px 'Public Sans';letter-spacing:-.01em;line-height:1.25}
+.node-sub{font:500 10.5px 'Public Sans';color:var(--faint);margin-top:1px}
+.node-stats{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.node-stat{font:700 10px 'IBM Plex Mono';padding:3px 7px;border-radius:8px;background:var(--card);color:var(--muted)}
+.node-stat.tables{color:var(--purple)} .node-stat.prog{color:var(--blue2)}
+.node-badge{position:absolute;top:-9px;right:10px;font:700 9px 'IBM Plex Mono';padding:3px 8px;border-radius:999px;background:var(--amber);color:#fff}
+.node-badge.done{background:var(--green)}
+
+/* Detail panel (right slide-in) */
+.detail-backdrop{position:fixed;inset:0;background:rgba(22,24,31,.25);display:none;z-index:50}
+.detail-backdrop.open{display:block}
+.detail-panel{position:fixed;top:0;right:0;height:100%;width:380px;max-width:92vw;background:#fff;z-index:51;
+  transform:translateX(100%);transition:transform .25s ease;box-shadow:-20px 0 50px -20px rgba(22,24,31,.4);
+  display:flex;flex-direction:column}
+.detail-panel.open{transform:translateX(0)}
+.detail-head{padding:20px 22px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
+.detail-head .ttl{flex:1}
+.detail-head h3{margin:0;font:800 17px 'Public Sans';letter-spacing:-.01em}
+.detail-head .phase-tag{font:600 10px 'IBM Plex Mono';color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.detail-close{background:none;border:0;color:var(--faint);font-size:18px;line-height:1;padding:4px}
+.detail-body{flex:1;overflow-y:auto;padding:18px 22px}
+.detail-section{margin-bottom:22px}
+.detail-section .lbl{font:700 10px 'IBM Plex Mono';letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+
+.mapping-viz{display:flex;gap:14px;align-items:flex-start}
+.mapping-tag{flex:none;background:var(--card);padding:8px 12px;border-radius:12px;font:700 11px 'Public Sans'}
+.mapping-lines{flex:1;display:flex;flex-direction:column;gap:9px;padding-left:14px}
+.mapping-lines .m-item{position:relative;font:600 11.5px 'IBM Plex Mono';color:var(--ink);background:var(--card);padding:6px 10px;border-radius:9px;border-left:2.5px dashed}
+.m-item:nth-child(4n+1){border-color:var(--red)} .m-item:nth-child(4n+2){border-color:var(--purple)}
+.m-item:nth-child(4n+3){border-color:var(--blue2)} .m-item:nth-child(4n+4){border-color:var(--green)}
+.mapping-empty{font:500 12px 'Public Sans';color:var(--faint);font-style:italic}
+
+.mini-progress-track{height:8px;border-radius:999px;background:var(--line2);overflow:hidden;margin-top:8px}
+.mini-progress-fill{height:100%;background:var(--blue2);border-radius:999px}
+.mini-progress-label{font:700 11px 'IBM Plex Mono';color:var(--muted);margin-top:6px}
+
+.prompt-box{background:var(--ink);color:#e8e8ea;border-radius:14px;padding:14px;font:400 11px/1.6 'IBM Plex Mono';max-height:260px;overflow-y:auto;white-space:pre-wrap}
+.copy-btn{width:100%;margin-top:10px;padding:11px;border-radius:12px;background:var(--blue);color:#fff;font:700 12.5px 'Public Sans';border:0}
+.copy-btn.copied{background:var(--green)}
+.jump-btn{width:100%;margin-top:8px;padding:11px;border-radius:12px;background:var(--card);color:var(--ink);font:700 12.5px 'Public Sans';border:0}
+
+/* Schema view */
+.schema-table{width:100%;border-collapse:collapse;margin-top:10px;font:400 12px 'Public Sans'}
+.schema-table th{text-align:left;font:700 10px 'IBM Plex Mono';text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:6px 10px;border-bottom:1.5px solid var(--line)}
+.schema-table td{padding:8px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+.schema-table td.col-name{font:600 12px 'IBM Plex Mono';color:var(--blue2)}
+.schema-table td.col-type{font:500 11px 'IBM Plex Mono';color:var(--muted);white-space:nowrap}
+details.tbl-details{margin-top:14px}
+details.tbl-details summary{cursor:pointer;font:700 14px 'Public Sans';padding:4px 0;list-style:none}
+details.tbl-details summary::-webkit-details-marker{display:none}
+details.tbl-details summary:before{content:"▸ ";color:var(--faint)}
+details.tbl-details[open] summary:before{content:"▾ "}
+.tbl-desc{font:400 12px 'Public Sans';color:var(--muted);margin:2px 0 0}
+
+/* Prompts view */
+.prompt-card{margin-bottom:14px}
+.prompt-card .ph{font:600 10px 'IBM Plex Mono';color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+
+/* Tracker view (checklist) */
+.t-screen{background:var(--card);border-radius:16px;padding:14px 16px;margin-top:10px}
+.t-screen-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px}
+.t-screen-head .name{font:700 13.5px 'Public Sans'}
+.t-count{font:700 10px 'IBM Plex Mono';color:var(--faint)}
+.t-items{display:none;margin-top:12px;flex-direction:column;gap:2px}
+.t-screen.open .t-items{display:flex}
+.t-group-label{font:700 9.5px 'IBM Plex Mono';letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:10px 0 4px}
+.t-group-label:first-child{margin-top:0}
+.t-item{display:flex;align-items:flex-start;gap:9px;padding:7px 6px;border-radius:9px}
+.t-item:hover{background:rgba(255,255,255,.6)}
+.t-item input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:19px;height:19px;margin-top:1px;border-radius:6px;border:1.5px solid #c7c6c1;background:#fff;position:relative}
+.t-item input[type=checkbox]:checked{background:var(--green);border-color:var(--green)}
+.t-item input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(40deg)}
+.t-item label{flex:1;font:500 12.5px/1.5 'Public Sans';cursor:pointer}
+.t-item.done label{color:var(--muted);text-decoration:line-through;text-decoration-color:#c7c6c1}
+.t-note-toggle{flex:none;font:600 10px 'IBM Plex Mono';color:var(--faint);background:none;border:0}
+.t-note-area{display:none;padding:0 6px 8px 34px}
+.t-note-area.open{display:block}
+.t-note-area textarea{width:100%;min-height:48px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);font:400 12px 'Public Sans'}
+.t-note-area .sv{margin-top:6px;font:600 10.5px 'Public Sans';padding:6px 12px;border-radius:8px;background:var(--blue2);color:#fff;border:0}
+.t-meta{font:500 10px 'IBM Plex Mono';color:var(--faint);padding:0 6px 6px 34px}
+
+/* Modal (device name) */
+.modal-backdrop{position:fixed;inset:0;background:rgba(22,24,31,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:420px}
+.modal h2{margin:0 0 6px;font:800 18px 'Public Sans'}
+.modal p{margin:0 0 16px;font:400 13px/1.6 'Public Sans';color:var(--muted)}
+.modal label{display:block;font:600 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:12px 0 6px}
+.modal input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);font:500 13px 'Public Sans';background:var(--card)}
+.modal .row{display:flex;gap:10px;margin-top:18px}
+.modal button{flex:1;min-height:44px;border-radius:12px;font:700 13px 'Public Sans';border:0}
+.modal .save{background:var(--blue);color:#fff}
+.modal .cancel{background:var(--card);color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">LI</div>
+      <div><div class="name">Lost Items Co.</div><div class="sub">Project Hub</div></div>
+    </div>
+
+    <div class="nav-group">
+      <div class="label">Overview</div>
+      <button class="nav-item active" data-view="overview"><span class="ic">◈</span>Overview</button>
+      <button class="nav-item" data-view="flow"><span class="ic">⌘</span>Flow Map</button>
+    </div>
+    <div class="nav-group">
+      <div class="label">Reference</div>
+      <button class="nav-item" data-view="schema"><span class="ic">▤</span>Database Schema</button>
+      <button class="nav-item" data-view="impl"><span class="ic">≡</span>Implementation Flow</button>
+      <button class="nav-item" data-view="prompts"><span class="ic">▸</span>Screen Prompts</button>
+    </div>
+    <div class="nav-group">
+      <div class="label">Tracking</div>
+      <button class="nav-item" data-view="tracker"><span class="ic">☑</span>Build Tracker</button>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="sync-row"><span class="dot offline" id="statusDot"></span><span id="statusText">Connecting…</span></div>
+      <button class="device-btn" id="deviceLink"><span class="lbl">Device</span><span id="deviceLabelText">Set device name</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="title-block">
+        <div class="eyebrow" id="viewEyebrow">Overview</div>
+        <h1 id="viewTitle">Project summary</h1>
+      </div>
+      <div class="overall-progress">
+        <div class="ring">
+          <svg width="44" height="44"><circle cx="22" cy="22" r="18" stroke="#ececea" stroke-width="5" fill="none"/><circle id="ringFill" cx="22" cy="22" r="18" stroke="#5B5FEE" stroke-width="5" fill="none" stroke-dasharray="113" stroke-dashoffset="113" stroke-linecap="round"/></svg>
+          <div class="pct" id="ringPct">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="view active" id="view-overview">
+        <div class="panel-card">
+          <h2>Lost Items Community</h2>
+          <p class="desc">React Native + Supabase mobile app. This hub ties together the database schema, the per-screen build methodology, ready-to-paste build prompts, and live cross-device progress tracking — all in one file.</p>
+          <div class="stat-grid" id="overviewStats"></div>
+        </div>
+        <div class="panel-card">
+          <h2>Open decisions</h2>
+          <p class="desc">Resolve these before the screens that depend on them (see Database Schema → Gaps for full detail).</p>
+          <div class="gap-list" id="gapList"></div>
+        </div>
+      </div>
+
+      <!-- FLOW MAP -->
+      <div class="view" id="view-flow">
+        <div class="flow-toolbar">
+          <button id="flowExpand">Expand overview stats</button>
+          <span style="font:500 11.5px 'Public Sans';color:var(--muted)">Click any screen to see its data mapping, prompt, and progress.</span>
+        </div>
+        <div class="flow-wrap" id="flowWrap"></div>
+      </div>
+
+      <!-- SCHEMA -->
+      <div class="view" id="view-schema">
+        <div class="panel-card">
+          <h2>Database Schema</h2>
+          <p class="desc">Supabase / Postgres. One source of truth — every screen's data mapping in Flow Map references these tables.</p>
+          <div id="schemaBody"></div>
+        </div>
+      </div>
+
+      <!-- IMPLEMENTATION FLOW -->
+      <div class="view" id="view-impl">
+        <div class="panel-card">
+          <h2>Overall build order</h2>
+          <p class="desc">Build in this order — each phase's backend is a prerequisite for the next.</p>
+          <div id="implOrder"></div>
+        </div>
+        <div class="panel-card">
+          <h2>Per-screen checklist (11 steps)</h2>
+          <p class="desc">Run this same checklist for every screen. It's the basis for the Build / Backend / Testing groups in Build Tracker.</p>
+          <div id="implSteps"></div>
+        </div>
+      </div>
+
+      <!-- PROMPTS -->
+      <div class="view" id="view-prompts">
+        <div class="panel-card">
+          <h2>Screen Prompts</h2>
+          <p class="desc">Copy one at a time into your coding assistant. Each is self-contained and follows the 11-step checklist.</p>
+          <div id="promptsBody"></div>
+        </div>
+      </div>
+
+      <!-- TRACKER -->
+      <div class="view" id="view-tracker">
+        <div class="panel-card">
+          <h2>Build Tracker</h2>
+          <p class="desc">Synced live via Supabase — check items off from any laptop.</p>
+          <div id="trackerBody"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="detail-backdrop" id="detailBackdrop"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-head">
+    <div class="ttl"><h3 id="dpTitle">Screen</h3><div class="phase-tag" id="dpPhase">Phase</div></div>
+    <button class="detail-close" id="dpClose">✕</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-section">
+      <div class="lbl">Progress</div>
+      <div class="mini-progress-track"><div class="mini-progress-fill" id="dpProgFill" style="width:0%"></div></div>
+      <div class="mini-progress-label" id="dpProgLabel">0/0</div>
+      <button class="jump-btn" id="dpJump">Open full checklist in Build Tracker →</button>
+    </div>
+    <div class="detail-section">
+      <div class="lbl">Data mapping</div>
+      <div class="mapping-viz" id="dpMapping"></div>
+    </div>
+    <div class="detail-section">
+      <div class="lbl">Build prompt</div>
+      <div class="prompt-box" id="dpPrompt"></div>
+      <button class="copy-btn" id="dpCopy">Copy prompt</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="deviceModal">
+  <div class="modal">
+    <h2>Who's checking this off?</h2>
+    <p>Saved next to each item you complete, so the tracker shows who did what. Stored only in this browser.</p>
+    <label for="deviceName">Your name / device label</label>
+    <input id="deviceName" type="text" placeholder="e.g. Uday — MacBook">
+    <div class="row"><button class="cancel" id="deviceCancel">Cancel</button><button class="save" id="deviceSave">Save</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var SUPABASE_URL = "https://uruqcwnmwofmawitdmcn.supabase.co";
+var SUPABASE_KEY = "sb_publishable_2875OAIZKqcPV9qHP_TR1Q_9a-0RkGj";
+
+/* ============ 11-step checklist groups (shared by every full screen) ============ */
+var BUILD_STEPS = ["UI mockup reviewed (states: default, loading, empty, error, success)","Screen built with mock/static data","UI tested in isolation (no console errors, all states, both platforms)"];
+var BACKEND_STEPS = ["Relevant tables/columns confirmed against schema","Supabase table(s) created/updated via migration","RLS policies written and enabled","Backend hooks/services layer built (Supabase client calls)"];
+var TEST_STEPS = ["Real backend wired in, replacing mock data","Supabase integration tested end-to-end (row confirmed in Table Editor)","Edge cases tested (invalid input, network failure, RLS rejection, duplicates)","Role-based behavior tested (member vs admin, where relevant)","Signed off — confirmed working before moving to next screen"];
+function fullGroups(){ return [ {label:"Build",items:BUILD_STEPS}, {label:"Backend / Supabase",items:BACKEND_STEPS}, {label:"Testing",items:TEST_STEPS} ]; }
+
+/* ============ Prompts (verbatim from screen-prompts.md) ============ */
+var PROMPTS = {
+"setup": `Set up the project foundation for a React Native app called "Lost Items Community" backed by Supabase.
+
+Do the following and confirm each before moving to the next:
+1. Scaffold a React Native project with a clean folder structure
+   (screens/, components/, hooks/, services/, navigation/, theme/).
+2. Install and configure @supabase/supabase-js with AsyncStorage-based
+   session persistence, reading the Supabase URL/anon key from env vars.
+3. Set up React Navigation with placeholder empty screens for every screen
+   in this order: Welcome, Login, SignUp, ForgotPassword, Home, ItemDetail,
+   ReportItem, ReportSuccess, MessagesInbox, ChatThread, Forum,
+   ThreadDetail, Profile, SupportChat, AdminDashboard, ModerationQueue,
+   MembersManagement, AdsManagement, Analytics.
+4. Create a theme/tokens file (colors, spacing, typography) based on the
+   design mockup I've shared (background #e7e6e2/#F2F2F0, primary blue
+   #0B6BCB, Public Sans + IBM Plex Mono fonts, 8px grid, 44px min tap
+   targets, rounded cards with soft shadows).
+5. Confirm the app builds and runs on both iOS and Android simulators with
+   navigation working between the empty placeholder screens.
+
+Do not build any real screen content yet — this is scaffolding only. Stop
+and report back once the empty app runs cleanly.`,
+
+"welcome": `Build the Welcome / Onboarding screen for the Lost Items Community app.
+
+Requirements:
+- 3-slide carousel (image, kicker, title, body per slide) matching the
+  mockup's welcome screen.
+- "Skip" button and "Already a member? Sign in" link both go to Login.
+- Final slide's primary button navigates to Login.
+- Dot indicators reflect current slide.
+
+Follow Steps 1–3 and 7 (UI build + isolated testing) since there's no
+backend for this screen. Test on both a fresh app launch and returning to
+this screen via a "reset" style navigation. Report back what you built and
+how you tested it, then stop for my confirmation before moving on.`,
+
+"login": `Build the Login screen for the Lost Items Community app.
+
+Reference: the \`profiles\` table (via auth.users). Follow the full
+Steps 1–11 checklist.
+
+Requirements:
+- Username/email + password fields, "Remember me" toggle, "Forgot
+  password?" link, inline error banner on failed login.
+- On submit, call supabase.auth.signInWithPassword().
+- On success, navigate to Home. On failure, show the specific Supabase
+  error message in the error banner.
+- "New here? Join free" link navigates to Sign Up.
+
+At Step 5, confirm Supabase Auth is enabled (email/password provider) and
+that a \`profiles\` row gets created automatically via trigger on signup.
+
+At Step 8, create a real test user in Supabase and confirm login succeeds
+end-to-end, and that a bad password is rejected with a clear message.
+
+Stop and report results for my confirmation before moving to Sign Up.`,
+
+"signup": `Build the Sign Up screen for the Lost Items Community app.
+
+Reference: the \`profiles\` table, and the Postgres trigger that auto-creates
+a \`profiles\` row on \`auth.users\` insert. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Fields: username, email, password, confirm password, "I accept the
+  community guidelines" checkbox (required to submit).
+- Client-side validation: passwords match, email format valid, checkbox
+  checked, username not empty.
+- On submit, call supabase.auth.signUp(), which should trigger creation of
+  the matching \`profiles\` row (role='member', guidelines_accepted_at=now()
+  if checkbox was checked).
+- On success, navigate to Home (or an email-confirmation screen if you've
+  enabled email confirmation in Supabase — confirm which mode the project
+  is set to before building).
+
+At Step 5, write/verify the SQL trigger function that creates the
+\`profiles\` row automatically — do not create the profile row from the
+client, it must happen server-side so it can't be skipped or spoofed.
+
+At Step 8/9, sign up a real test account and confirm: the auth.users row
+exists, the matching profiles row exists with correct role and
+guidelines_accepted_at, and a duplicate email is rejected with a clear
+error.
+
+Stop and report results for my confirmation before moving to Forgot Password.`,
+
+"forgot": `Build the Forgot Password flow (email → code → reset) for the Lost Items
+Community app.
+
+Reference: supabase.auth.resetPasswordForEmail(). Follow the full Steps 1–11
+checklist.
+
+Requirements:
+- Step 1 of the UI: email input, "Send reset code" button.
+- Step 2 of the UI: confirmation banner ("Code sent to {email}"), code
+  input, new password + confirm fields.
+- Handle Supabase's actual reset mechanism correctly — confirm whether it
+  uses a magic-link redirect or an OTP code, and adjust the UI flow to
+  match reality rather than assuming a code-entry step if they differ.
+- Inline error handling for invalid/expired code and non-matching
+  passwords.
+
+At Step 8, trigger a real reset for a test account and confirm the
+password change actually takes effect (test login with new password
+after).
+
+Stop and report results for my confirmation. This completes Phase 1 (Auth
+Flow) — do not start Phase 2 (Home/Registry) until I confirm.`,
+
+"home": `Build the Home / Registry screen (Lost & Found feed) for the Lost Items
+Community app.
+
+Reference: \`items\`, \`categories\`, \`item_photos\` tables. Follow the full
+Steps 1–11 checklist.
+
+Requirements:
+- Toggle/segmented control between "Lost" and "Found" feeds.
+- Search bar (filters by title/description/location) and category filter.
+- Each card shows title, category icon, location, date, status.
+- Tapping a card navigates to Item Detail with that item's id.
+- Empty state when no items match the current filter.
+- Only show items where moderation_status = 'approved' OR
+  reporter_id = current user (so your own pending items are visible to you).
+
+At Step 5, confirm the RLS policy on \`items\` enforces exactly that
+visibility rule server-side, not just via client-side filtering.
+
+At Step 8, seed a few test items directly in Supabase (mix of lost/found,
+approved/pending, different categories) and confirm the feed, filters, and
+search all behave correctly against real data.
+
+Stop and report results for my confirmation before moving to Item Detail.`,
+
+"itemdetail": `Build the Item Detail screen for the Lost Items Community app.
+
+Reference: \`items\`, \`item_photos\`, \`conversations\`,
+\`conversation_participants\` tables. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Show full item info: photos, title, description, category, location
+  (map pin if lat/long present), date, reporter's username.
+- "Message about this item" button: if a conversation between the current
+  user and the reporter for this item doesn't exist yet, create one and
+  navigate to Chat Thread; if it exists, navigate straight to it.
+- If the current user is the reporter, show edit/mark-as-resolved actions
+  instead of a message button.
+
+At Step 5, confirm the RLS policy allows creating a conversation only
+between the current user and the item's reporter (no arbitrary
+conversation creation).
+
+At Step 8, walk through both paths as two different test accounts: viewing
+someone else's item (message button appears, tapping it creates exactly
+one conversation even if tapped twice) and viewing your own item (edit/
+resolve actions appear instead).
+
+Stop and report results for my confirmation before moving to Report an Item.`,
+
+"report": `Build the Report an Item screen (2-step form) for the Lost Items Community
+app.
+
+Reference: \`items\`, \`item_photos\`, \`categories\` tables. Follow the full
+Steps 1–11 checklist.
+
+Requirements:
+- Step 1: Lost/Found toggle, title, category picker, description.
+- Step 2: location text field, "Use my location" button, tap-to-pin map,
+  date field.
+- Photo upload (at least one, up to N) to Supabase Storage, rows written
+  to \`item_photos\`.
+- On submit, insert into \`items\` with moderation_status='pending', and
+  navigate to Report Success with the new item's short_code.
+- Validation: Step 1 requires title + category before advancing; Step 2
+  requires location before submit.
+
+At Step 5, confirm the RLS insert policy only allows a user to insert an
+item with reporter_id = their own auth.uid().
+
+At Step 8, submit a real test report end-to-end including at least one
+photo, then confirm in Supabase: the items row, its item_photos rows, and
+the uploaded file in Storage are all present and correctly linked.
+
+Stop and report results for my confirmation before moving to Report Success.`,
+
+"success": `Build the Report Success confirmation screen for the Lost Items Community
+app.
+
+This screen only reads data already passed to it from the Report screen —
+it does not need its own new queries.
+
+Requirements:
+- Show the new item's short_code and a success message.
+- "View in registry" button navigates to Home, pre-filtered to Lost or
+  Found matching what was just submitted.
+- "Report another item" button navigates back to Report an Item, reset.
+
+Test that both navigation actions work and that the correct filter is
+applied when landing back on Home.
+
+Stop and report results for my confirmation. This completes Phase 2 —
+do not start Phase 3 (Messaging) until I confirm.`,
+
+"inbox": `Build the Messages Inbox screen for the Lost Items Community app.
+
+Reference: \`conversations\`, \`conversation_participants\`, \`messages\`
+tables. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- List all conversations the current user participates in, sorted by
+  last_message_at descending.
+- Show the other participant's name/initials, the linked item's title (if
+  any), a preview of the last message, and an unread indicator based on
+  comparing last_read_at to the latest message's created_at.
+- Tapping a row navigates to Chat Thread.
+
+At Step 5, confirm RLS restricts conversations/messages selects to rows
+the current user actually participates in.
+
+At Step 8, using two real test accounts, have one message the other via an
+Item Detail screen, then confirm both accounts see the conversation in
+their inbox with correct unread state.
+
+Stop and report results for my confirmation before moving to Chat Thread.`,
+
+"chat": `Build the Chat Thread screen for the Lost Items Community app.
+
+Reference: \`messages\`, \`conversation_participants\` tables. Follow the full
+Steps 1–11 checklist.
+
+Requirements:
+- Scrollable message list (bubbles styled by sender), text input + send
+  button, and quick-reply buttons ("Post it to me", "Share my number",
+  plus any others you see fit).
+- Use Supabase Realtime to subscribe to new messages in this conversation
+  so both sides see messages live without refreshing.
+- Update conversation_participants.last_read_at when the screen is
+  viewed.
+
+At Step 5, confirm RLS allows insert only by a participant of the
+conversation.
+
+At Step 8/9, test with two real accounts in two simulators/devices
+simultaneously: confirm messages appear live on both sides, quick-reply
+buttons insert the correct canned text, and closing/reopening the thread
+correctly updates unread state in the Inbox.
+
+Stop and report results for my confirmation. This completes Phase 3 — do
+not start Phase 4 (Forum) until I confirm.`,
+
+"forum": `Build the Community Forum screen (thread list) for the Lost Items
+Community app.
+
+Reference: \`forum_threads\` table. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- List threads (author, topic tag, title, preview text, helpful count,
+  reply count), "Start a discussion" button opening a new-thread form.
+- Suspended threads show the suspended banner but remain visible — confirm
+  this is actually the behavior you want before building it, since it's a
+  real moderation-policy decision, not just a UI detail.
+- Tapping a thread navigates to Thread Detail.
+
+At Step 5, confirm RLS excludes only is_removed = true threads from
+member view (suspended stays visible per above).
+
+At Step 8, seed a few threads including one suspended and one removed,
+confirm the feed shows exactly what it should for a member account.
+
+Stop and report results for my confirmation before moving to Thread Detail.`,
+
+"thread": `Build the Thread Detail screen for the Lost Items Community app.
+
+Reference: \`forum_threads\`, \`forum_replies\`, \`forum_helpful_votes\` tables.
+Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Show the full thread body, all replies in order, a reply composer, and
+  a "Helpful" button that toggles the current user's vote.
+- If the current user has role='admin', show Suspend/Delete post actions
+  on the thread.
+
+At Step 5, confirm the forum_helpful_votes composite key prevents double
+voting, and RLS restricts suspend/delete actions to role='admin' only.
+
+At Step 8/9, test voting toggling correctly (vote, un-vote, count updates),
+replying, and — logged in as an admin test account — suspending and
+deleting a thread, then confirming a member account sees the correct
+resulting state.
+
+Stop and report results for my confirmation. This completes Phase 4 — do
+not start Phase 5 (Profile) until I confirm.`,
+
+"profile": `Build the Profile & Settings screen for the Lost Items Community app.
+
+Reference: \`profiles\` table. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Show role-appropriate settings: members see notifications/city/contact-
+  sharing/language; admins see role/moderation alerts/records reviewed/
+  audit log link.
+- Editable fields save back to profiles on change.
+- Logout button calls supabase.auth.signOut() and returns to Login.
+
+At Step 8, test as both a member and an admin test account, confirm each
+sees the correct settings set and that edits persist after navigating away
+and back.
+
+Stop and report results for my confirmation before moving to Support Chat.`,
+
+"support": `Build the Support Chat screen for the Lost Items Community app.
+
+Reference: \`support_tickets\`, \`support_messages\`, \`faqs\` tables. Follow
+the full Steps 1–11 checklist.
+
+Requirements:
+- FAQ chips that, when tapped, insert the FAQ question as a user message
+  and a canned bot answer as a reply.
+- Free-text input for custom questions, with a simple bot fallback
+  response for anything not matched to an FAQ.
+- "Escalate to human support" button that sets the ticket status to
+  'escalated' and shows a confirmation.
+
+At Step 8, test tapping an FAQ chip, sending a custom message, and
+escalating, then confirm the corresponding rows exist in support_tickets/
+support_messages in Supabase.
+
+Stop and report results for my confirmation. This completes Phase 5 —
+do not start Phase 6 (Admin) until I confirm.`,
+
+"dashboard": `Build the Admin Dashboard screen for the Lost Items Community app.
+Access must be restricted to role='admin' at both the navigation level and
+the RLS level.
+
+Reference: aggregate reads across \`items\`, \`forum_threads\`,
+\`moderation_flags\`. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Summary stat cards: pending moderation count, total active items, total
+  members, flagged-keyword hits (stub with a TODO if Analytics isn't built
+  yet).
+- Navigation entry points to Moderation Queue, Members Management, Ads
+  Management, Analytics.
+
+At Step 8, confirm a member account is fully blocked from reaching this
+screen (both UI navigation guard and a direct RLS test on the underlying
+queries), and an admin account sees accurate live counts.
+
+Stop and report results for my confirmation before moving to Moderation Queue.`,
+
+"moderation": `Build the Moderation Queue screen for the Lost Items Community app.
+Admin-only.
+
+Reference: \`moderation_flags\` table (resolved against items/forum_threads/
+forum_replies per your explicit-FK decision in the schema gaps). Follow the
+full Steps 1–11 checklist.
+
+Requirements:
+- List all flags with status='pending', showing the flagged content
+  preview, reason, and Approve/Remove buttons.
+- Approve sets the flag to 'approved' and the underlying item/thread's
+  moderation_status back to 'approved'.
+- Remove sets the flag to 'removed' and soft-deletes the underlying
+  content (is_removed=true / moderation_status='removed') — soft delete,
+  not a hard delete.
+- Every action writes a row to admin_audit_log.
+
+At Step 8/9, seed a few pending flags across different target types,
+approve one and remove another, then confirm: the flag status changed,
+the underlying content's status changed correctly, an audit log row was
+written, and a member account can no longer see the removed content.
+
+Stop and report results for my confirmation before moving to Members
+Management.`,
+
+"members": `Build the Members Management screen for the Lost Items Community app.
+Admin-only.
+
+Reference: \`profiles\` table. Follow the full Steps 1–11 checklist.
+
+Requirements:
+- Searchable list of all members with role, join date, is_suspended
+  status.
+- Suspend/unsuspend action per member, writing to admin_audit_log.
+
+At Step 8, suspend a test member account and confirm that account is
+actually blocked from posting items/messages/threads (test the RLS, not
+just the UI flag).
+
+Stop and report results for my confirmation before moving to Ads
+Management.`,
+
+"ads": `Build the Ads Management screen for the Lost Items Community app.
+Admin-only.
+
+Reference: \`ad_campaigns\`, \`ad_stats\` tables. Follow the full Steps 1–11
+checklist.
+
+Requirements:
+- List campaigns with advertiser, placement (screen_slot), days
+  remaining, is_live status, and rolled-up revenue/impressions/CTR from
+  ad_stats.
+- Create/edit a campaign form.
+
+At Step 8, create a test campaign, seed a few ad_stats rows for it, and
+confirm the rolled-up numbers on the list screen compute correctly.
+
+Stop and report results for my confirmation before moving to Analytics.`,
+
+"analytics": `Build the Analytics screen for the Lost Items Community app. Admin-only.
+
+Reference: aggregate reads across \`moderation_flags\` (flagged-keyword
+stats) and \`ad_stats\` (revenue/impressions trends). Follow the full Steps
+1–11 checklist.
+
+Requirements:
+- Bar chart or similar of flagged-keyword frequency (e.g. "payment
+  upfront", "meet alone") over a selectable time range.
+- Revenue/impressions trend from ad_stats.
+
+At Step 8, seed enough historical moderation_flags/ad_stats rows to
+produce a non-trivial chart, and confirm the numbers match a manual query
+against the same tables.
+
+Stop and report results for my confirmation. This is the last screen —
+once confirmed, do a full end-to-end pass through every phase's Step 10
+(role-based testing) one more time as regression before considering v1 done.`
+};
+
+/* ============ Phases / screens (single source of truth) ============ */
+function fullScreen(name,key,tables){ return {name:name,key:key,tables:tables,groups:fullGroups()}; }
+function simpleScr(name,key,items,tables){ return {name:name,key:key,tables:tables||[],groups:[{label:"Checklist",items:items}]}; }
+
+var PHASES = [
+  { name:"Phase 0 — Setup", sub:"Run once", screens:[
+    simpleScr("Project & Supabase Setup","setup",[
+      "React Native project scaffolded (screens/components/hooks/services/navigation/theme)",
+      "@supabase/supabase-js installed, AsyncStorage session persistence configured",
+      "React Navigation set up with placeholder screens for all 19 screens",
+      "Theme/tokens file created matching mockup",
+      "App builds and runs cleanly on iOS and Android simulators"
+    ],[])
+  ]},
+  { name:"Phase 1 — Auth Flow", sub:"Welcome · Login · Sign Up · Forgot", screens:[
+    simpleScr("Welcome / Onboarding","welcome",[
+      "3-slide carousel built matching mockup","Skip and 'Sign in' links navigate to Login",
+      "Final slide button navigates to Login","Dot indicators reflect current slide",
+      "Tested in isolation on both platforms"
+    ],[]),
+    fullScreen("Login","login",["profiles"]),
+    fullScreen("Sign Up","signup",["profiles"]),
+    fullScreen("Forgot Password","forgot",[])
+  ]},
+  { name:"Phase 2 — Registry", sub:"Home · Detail · Report · Success", screens:[
+    fullScreen("Home / Registry","home",["items","categories","item_photos"]),
+    fullScreen("Item Detail","itemdetail",["items","item_photos","conversations","conversation_participants"]),
+    fullScreen("Report an Item","report",["items","item_photos","categories"]),
+    simpleScr("Report Success","success",[
+      "Shows new item's short_code and success message","'View in registry' navigates to Home with correct filter",
+      "'Report another item' resets and returns to Report screen","Both navigation actions tested"
+    ],[])
+  ]},
+  { name:"Phase 3 — Messaging", sub:"Inbox · Chat Thread", screens:[
+    fullScreen("Messages Inbox","inbox",["conversations","conversation_participants","messages"]),
+    fullScreen("Chat Thread","chat",["messages","conversation_participants"])
+  ]},
+  { name:"Phase 4 — Forum", sub:"Forum · Thread Detail", screens:[
+    fullScreen("Community Forum","forum",["forum_threads"]),
+    fullScreen("Thread Detail","thread",["forum_threads","forum_replies","forum_helpful_votes"])
+  ]},
+  { name:"Phase 5 — Profile & Support", sub:"Profile · Support", screens:[
+    fullScreen("Profile & Settings","profile",["profiles"]),
+    fullScreen("Support Chat","support",["support_tickets","support_messages","faqs"])
+  ]},
+  { name:"Phase 6 — Admin", sub:"Dashboard · Moderation · Members · Ads · Analytics", screens:[
+    fullScreen("Admin Dashboard","dashboard",["items","forum_threads","moderation_flags"]),
+    fullScreen("Moderation Queue","moderation",["moderation_flags","admin_audit_log"]),
+    fullScreen("Members Management","members",["profiles","admin_audit_log"]),
+    fullScreen("Ads Management","ads",["ad_campaigns","ad_stats"]),
+    fullScreen("Analytics","analytics",["moderation_flags","ad_stats"])
+  ]}
+];
+
+/* ============ Schema reference data ============ */
+var SCHEMA = [
+  {group:"Identity & Profile", tables:[
+    {name:"profiles",desc:"Extends auth.users 1:1, created via trigger.",cols:[
+      ["id","uuid PK","= auth.users.id"],["username","text unique","display name"],["full_name","text",""],
+      ["email","text","denormalized"],["avatar_url","text","nullable"],["role","enum member/admin",""],
+      ["city","text","nullable"],["phone","text","nullable"],["notification_prefs","jsonb",""],
+      ["contact_sharing_pref","enum after_match/always/never",""],["guidelines_accepted_at","timestamptz","nullable"],
+      ["is_suspended","boolean","default false"]
+    ]},
+    {name:"device_tokens",desc:"Missing from mockup — needed for push notifications.",cols:[
+      ["id","uuid PK",""],["user_id","uuid FK profiles",""],["token","text","Expo/FCM/APNs"],["platform","enum ios/android",""]
+    ]}
+  ]},
+  {group:"Registry (Lost & Found)", tables:[
+    {name:"categories",desc:"",cols:[["id","uuid PK",""],["name","text unique",""],["icon","text",""],["sort_order","int",""]]},
+    {name:"items",desc:"",cols:[
+      ["id","uuid PK",""],["short_code","text unique","e.g. LOST-1032"],["reporter_id","uuid FK profiles",""],
+      ["kind","enum lost/found",""],["title","text",""],["description","text",""],["category_id","uuid FK categories","nullable"],
+      ["location_text","text",""],["latitude","numeric(9,6)","nullable"],["longitude","numeric(9,6)","nullable"],
+      ["date_occurred","date",""],["status","enum active/resolved/removed",""],["moderation_status","enum pending/approved/removed",""],
+      ["matched_item_id","uuid FK items","nullable — see Gaps"],["flagged_count","int","default 0"]
+    ]},
+    {name:"item_photos",desc:"",cols:[["id","uuid PK",""],["item_id","uuid FK items",""],["storage_path","text",""],["sort_order","int",""]]}
+  ]},
+  {group:"Messaging", tables:[
+    {name:"conversations",desc:"",cols:[["id","uuid PK",""],["item_id","uuid FK items","nullable"],["last_message_at","timestamptz",""]]},
+    {name:"conversation_participants",desc:"",cols:[["conversation_id","uuid FK conversations","composite PK"],["user_id","uuid FK profiles",""],["last_read_at","timestamptz","nullable"]]},
+    {name:"messages",desc:"",cols:[["id","uuid PK",""],["conversation_id","uuid FK conversations",""],["sender_id","uuid FK profiles",""],["body","text",""],["is_quick_reply","boolean","default false"]]}
+  ]},
+  {group:"Community Forum", tables:[
+    {name:"forum_threads",desc:"",cols:[["id","uuid PK",""],["author_id","uuid FK profiles",""],["topic","text",""],["title","text",""],["body","text",""],["helpful_count","int","default 0"],["is_suspended","boolean","default false"],["is_removed","boolean","default false"]]},
+    {name:"forum_replies",desc:"",cols:[["id","uuid PK",""],["thread_id","uuid FK forum_threads",""],["author_id","uuid FK profiles",""],["body","text",""]]},
+    {name:"forum_helpful_votes",desc:"Composite PK prevents double-voting.",cols:[["thread_id","uuid FK forum_threads","composite PK"],["user_id","uuid FK profiles",""]]}
+  ]},
+  {group:"Moderation (Admin)", tables:[
+    {name:"moderation_flags",desc:"Generic flag table feeding the single Moderation Queue screen.",cols:[
+      ["id","uuid PK",""],["target_type","enum item/forum_thread/forum_reply/profile",""],["target_id","uuid","see Gaps re: FK design"],
+      ["reason","text",""],["flagged_by","uuid FK profiles","nullable = system"],["status","enum pending/approved/removed",""],
+      ["reviewed_by","uuid FK profiles","nullable, admin"],["reviewed_at","timestamptz","nullable"]
+    ]},
+    {name:"admin_audit_log",desc:"Missing from mockup — needed for the 'Audit log' admin setting.",cols:[["id","uuid PK",""],["admin_id","uuid FK profiles",""],["action_type","text",""],["target_type","text",""],["target_id","uuid",""],["notes","text","nullable"]]}
+  ]},
+  {group:"Support", tables:[
+    {name:"support_tickets",desc:"",cols:[["id","uuid PK",""],["user_id","uuid FK profiles",""],["status","enum bot/escalated/closed",""]]},
+    {name:"support_messages",desc:"",cols:[["id","uuid PK",""],["ticket_id","uuid FK support_tickets",""],["sender","enum user/bot/agent",""],["body","text",""]]},
+    {name:"faqs",desc:"",cols:[["id","uuid PK",""],["question","text",""],["answer","text",""],["sort_order","int",""]]}
+  ]},
+  {group:"Ads / Sponsorship (Admin)", tables:[
+    {name:"ad_campaigns",desc:"",cols:[["id","uuid PK",""],["short_code","text unique","e.g. AD-01"],["advertiser_name","text",""],["campaign_name","text",""],["screen_slot","enum home/registry/forum/report_success",""],["format","text",""],["start_date","date",""],["end_date","date",""],["is_live","boolean",""]]},
+    {name:"ad_stats",desc:"Split from campaigns so numbers roll up independently.",cols:[["id","uuid PK",""],["campaign_id","uuid FK ad_campaigns",""],["date","date","daily rollup"],["impressions","int",""],["clicks","int",""],["revenue","numeric(10,2)",""]]}
+  ]},
+  {group:"Notifications", tables:[
+    {name:"notifications",desc:"Missing from mockup — needed for unread badges / push alerts.",cols:[["id","uuid PK",""],["user_id","uuid FK profiles",""],["type","enum message/forum_reply/item_match/moderation/system",""],["title","text",""],["body","text",""],["is_read","boolean","default false"]]}
+  ]}
+];
+
+var GAPS = [
+  "Polymorphic moderation_flags.target_id — use explicit nullable FK columns (item_id/thread_id/reply_id) with a check constraint, not a single untyped column.",
+  "Lost↔found matching has no schema yet — decide between a simple matched_item_id self-reference or a separate item_matches table with confirmation state.",
+  "Contact info exposure (contact_sharing_pref) exists but nothing enforces it — decide if reveal is automatic on match or manual per-message (mockup implies manual).",
+  "Push notifications need device_tokens + notifications tables (added above) — confirm you actually want push before building it.",
+  "No rate limiting / spam prevention on item or forum post creation — worth a daily-count check via trigger or Edge Function.",
+  "guidelines_accepted_at is a single timestamp — add a version column if guidelines will ever change and need re-acceptance.",
+  "Admin 'Delete post' in the mockup implies hard delete — use soft delete (is_removed / moderation_status='removed') everywhere instead.",
+  "item_photos assumes Supabase Storage with no abuse-image scanning — decide if that matters for v1.",
+  "No full-text search yet — plan for a tsvector column + GIN index on items/forum_threads once data volume grows."
+];
+
+/* ============ Supabase-backed tracker state ============ */
+var LOCAL_CACHE_KEY = "lic-hub-tracker-cache-v1";
+var DEVICE_KEY = "lic-build-tracker-device-v1";
+var state = {}; // itemId -> {checked, note, updated_by, updated_at}
+var deviceName = "";
+
+function itemId(pIdx,sIdx,gIdx,iIdx){ return pIdx+"-"+sIdx+"-"+gIdx+"-"+iIdx; }
+function loadDeviceName(){ try{ return localStorage.getItem(DEVICE_KEY)||""; }catch(e){ return ""; } }
+function saveDeviceName(n){ try{ localStorage.setItem(DEVICE_KEY,n); }catch(e){} }
+function loadLocalCache(){ try{ var r=localStorage.getItem(LOCAL_CACHE_KEY); if(r) state=JSON.parse(r); }catch(e){ state={}; } }
+function saveLocalCache(){ try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(state)); }catch(e){} }
+function setStatus(mode,text){ document.getElementById("statusDot").className="dot "+mode; document.getElementById("statusText").textContent=text; }
+function authHeaders(extra){ var h={apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}; if(extra) for(var k in extra) h[k]=extra[k]; return h; }
+
+async function fetchRemoteState(){
+  var res = await fetch(SUPABASE_URL+"/rest/v1/tracker_progress?select=item_id,checked,note,updated_by,updated_at",{headers:authHeaders()});
+  if(!res.ok) throw new Error("fetch failed "+res.status);
+  var rows = await res.json(); var next={};
+  rows.forEach(function(r){ next[r.item_id]={checked:!!r.checked,note:r.note||"",updated_by:r.updated_by||"",updated_at:r.updated_at||""}; });
+  return next;
+}
+async function upsertRemote(id,patch){
+  var body = Object.assign({item_id:id}, patch, {updated_at:new Date().toISOString()});
+  var res = await fetch(SUPABASE_URL+"/rest/v1/tracker_progress",{
+    method:"POST", headers:authHeaders({"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"}),
+    body: JSON.stringify([body])
+  });
+  if(!res.ok) throw new Error("upsert failed "+res.status);
+}
+async function refreshFromRemote(){
+  setStatus("syncing","Syncing…");
+  try{ state = await fetchRemoteState(); saveLocalCache(); renderAll(); setStatus("synced","Synced with Supabase"); }
+  catch(e){ setStatus("offline","Offline — showing last cache"); }
+}
+function fmtWhen(iso){ if(!iso) return ""; try{ var d=new Date(iso); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}); }catch(e){ return ""; } }
+
+function countTotals(pIdx,sIdx){
+  var total=0,done=0;
+  PHASES.forEach(function(phase,pI){
+    if(pIdx!==undefined && pI!==pIdx) return;
+    phase.screens.forEach(function(scr,sI){
+      if(sIdx!==undefined && sI!==sIdx) return;
+      scr.groups.forEach(function(g,gI){
+        g.items.forEach(function(it,iI){
+          total++; var rec=state[itemId(pI,sI,gI,iI)]; if(rec&&rec.checked) done++;
+        });
+      });
+    });
+  });
+  return {total:total,done:done};
+}
+function countForScreenKey(key){
+  var res=null;
+  PHASES.forEach(function(phase,pI){ phase.screens.forEach(function(scr,sI){ if(scr.key===key) res=countTotals(pI,sI); }); });
+  return res||{total:0,done:0};
+}
+function locateScreen(key){
+  var out=null;
+  PHASES.forEach(function(phase,pI){ phase.screens.forEach(function(scr,sI){ if(scr.key===key) out={phase:phase,pIdx:pI,scr:scr,sIdx:sI}; }); });
+  return out;
+}
+
+/* ============ Overview render ============ */
+function renderOverview(){
+  var allScreens=[]; PHASES.forEach(function(p){ p.screens.forEach(function(s){ allScreens.push(s); }); });
+  var overall = countTotals();
+  var tableCount=0; SCHEMA.forEach(function(g){ tableCount+=g.tables.length; });
+  var stats = [
+    {num:allScreens.length,lbl:"Screens"},
+    {num:PHASES.length,lbl:"Phases"},
+    {num:tableCount,lbl:"DB tables"},
+    {num:overall.done+"/"+overall.total,lbl:"Checklist items done"},
+    {num:GAPS.length,lbl:"Open decisions"}
+  ];
+  document.getElementById("overviewStats").innerHTML = stats.map(function(s){
+    return '<div class="stat"><div class="num">'+s.num+'</div><div class="lbl">'+s.lbl+'</div></div>';
+  }).join("");
+  document.getElementById("gapList").innerHTML = GAPS.map(function(g,i){
+    return '<div class="gap-item"><span class="n">'+(i+1)+'</span><span>'+g+'</span></div>';
+  }).join("");
+}
+
+/* ============ Flow map render ============ */
+function screenIcon(scr){
+  if(scr.groups.length===1 && scr.groups[0].label==="Checklist") return "◇";
+  return "▤";
+}
+function renderFlow(){
+  var wrap = document.getElementById("flowWrap");
+  wrap.innerHTML = "";
+  PHASES.forEach(function(phase,pIdx){
+    var col = document.createElement("div"); col.className="phase-col";
+    var head = document.createElement("div"); head.className="phase-col-head";
+    head.innerHTML = '<span class="n">'+(pIdx+1)+'</span><span class="t">'+phase.name.replace(/^Phase \d+ — /,"")+'</span>';
+    col.appendChild(head);
+
+    phase.screens.forEach(function(scr,sIdx){
+      var st = countTotals(pIdx,sIdx);
+      var pct = st.total ? Math.round(st.done/st.total*100) : 0;
+      var node = document.createElement("div");
+      node.className = "node"+(pct===100?" done-full":"");
+      node.dataset.key = scr.key;
+      var badge = pct===100 ? '<span class="node-badge done">done</span>' : (pct>0 ? '<span class="node-badge">'+pct+'%</span>' : "");
+      node.innerHTML =
+        badge +
+        '<div class="node-top"><div class="node-icon">'+screenIcon(scr)+'</div><div><div class="node-title">'+scr.name+'</div><div class="node-sub">'+phase.sub+'</div></div></div>' +
+        '<div class="node-stats">' +
+          '<span class="node-stat tables">'+scr.tables.length+' tables</span>' +
+          '<span class="node-stat prog">'+st.done+'/'+st.total+'</span>' +
+        '</div>';
+      node.addEventListener("click", function(){ openDetail(scr.key); });
+      col.appendChild(node);
+      if(sIdx < phase.screens.length-1){ var conn=document.createElement("div"); conn.className="phase-connector"; col.appendChild(conn); }
+    });
+    wrap.appendChild(col);
+  });
+}
+
+/* ============ Detail panel ============ */
+var detailBackdrop = document.getElementById("detailBackdrop");
+var detailPanel = document.getElementById("detailPanel");
+var currentDetailKey = null;
+
+function openDetail(key){
+  currentDetailKey = key;
+  var loc = locateScreen(key); if(!loc) return;
+  var scr = loc.scr;
+  document.getElementById("dpTitle").textContent = scr.name;
+  document.getElementById("dpPhase").textContent = loc.phase.name;
+
+  var st = countForScreenKey(key);
+  var pct = st.total ? Math.round(st.done/st.total*100) : 0;
+  document.getElementById("dpProgFill").style.width = pct+"%";
+  document.getElementById("dpProgLabel").textContent = st.done+" / "+st.total+" checklist items done";
+
+  var mapEl = document.getElementById("dpMapping");
+  if(scr.tables.length===0){
+    mapEl.innerHTML = '<div class="mapping-empty">No database tables — UI/navigation only.</div>';
+  } else {
+    mapEl.innerHTML =
+      '<div class="mapping-tag">Mapping</div>' +
+      '<div class="mapping-lines">' + scr.tables.map(function(t){ return '<div class="m-item">'+t+'</div>'; }).join("") + '</div>';
+  }
+
+  document.getElementById("dpPrompt").textContent = PROMPTS[key] || "(no prompt on file)";
+  var copyBtn = document.getElementById("dpCopy");
+  copyBtn.textContent = "Copy prompt"; copyBtn.classList.remove("copied");
+
+  document.getElementById("dpJump").onclick = function(){
+    switchView("tracker");
+    closeDetail();
+    setTimeout(function(){
+      var el = document.querySelector('.t-screen[data-key="'+key+'"]');
+      if(el){ el.classList.add("open"); el.scrollIntoView({behavior:"smooth",block:"center"}); }
+    }, 60);
+  };
+
+  detailBackdrop.classList.add("open");
+  detailPanel.classList.add("open");
+}
+function closeDetail(){ detailBackdrop.classList.remove("open"); detailPanel.classList.remove("open"); currentDetailKey=null; }
+detailBackdrop.addEventListener("click", closeDetail);
+document.getElementById("dpClose").addEventListener("click", closeDetail);
+document.getElementById("dpCopy").addEventListener("click", function(){
+  var text = PROMPTS[currentDetailKey] || "";
+  var btn = this;
+  function ok(){ btn.textContent="Copied ✓"; btn.classList.add("copied"); setTimeout(function(){ btn.textContent="Copy prompt"; btn.classList.remove("copied"); },1600); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(function(){ fallbackCopy(text, ok); });
+  } else { fallbackCopy(text, ok); }
+});
+function fallbackCopy(text, cb){
+  try{
+    var ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); cb();
+  }catch(e){ alert("Copy failed — select the text manually."); }
+}
+
+/* ============ Schema render ============ */
+function renderSchema(){
+  var body = document.getElementById("schemaBody");
+  body.innerHTML = SCHEMA.map(function(group){
+    return '<h3 style="margin:18px 0 4px;font:800 14px \'Public Sans\'">'+group.group+'</h3>' +
+      group.tables.map(function(t){
+        var rows = t.cols.map(function(c){ return '<tr><td class="col-name">'+c[0]+'</td><td class="col-type">'+c[1]+'</td><td>'+c[2]+'</td></tr>'; }).join("");
+        return '<details class="tbl-details"><summary>'+t.name+'</summary>' +
+          (t.desc ? '<p class="tbl-desc">'+t.desc+'</p>' : '') +
+          '<table class="schema-table"><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>'+rows+'</tbody></table>' +
+          '</details>';
+      }).join("");
+  }).join("") +
+  '<h3 style="margin:22px 0 4px;font:800 14px \'Public Sans\'">Gaps &amp; decisions</h3>' +
+  '<div class="gap-list">' + GAPS.map(function(g,i){ return '<div class="gap-item"><span class="n">'+(i+1)+'</span><span>'+g+'</span></div>'; }).join("") + '</div>';
+}
+
+/* ============ Implementation flow render ============ */
+function renderImpl(){
+  var order = [
+    "Project & Supabase setup — one-time, before Page 1",
+    "Auth Flow — Welcome, Login, Sign Up, Forgot Password",
+    "Home / Registry — needs items, categories, item_photos",
+    "Item Detail — same tables plus starts a conversations row",
+    "Report an Item — writes to items, item_photos",
+    "Report Success",
+    "Messages Inbox + Chat Thread — needs conversations, conversation_participants, messages",
+    "Community Forum + Thread Detail — needs forum_threads, forum_replies, forum_helpful_votes",
+    "Profile & Settings — reads/writes profiles",
+    "Support Chat — needs support_tickets, support_messages, faqs",
+    "Admin Dashboard — aggregate reads",
+    "Moderation Queue — needs moderation_flags",
+    "Members Management",
+    "Ads Management",
+    "Analytics"
+  ];
+  document.getElementById("implOrder").innerHTML =
+    '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font:500 13px/1.6 \'Public Sans\'">' +
+    order.map(function(o){ return '<li>'+o+'</li>'; }).join("") + '</ol>';
+
+  var steps = [
+    ["Confirm the design","List every UI state (default, loading, empty, error, success) and every interactive element's data needs."],
+    ["Build UI with mock data","Hardcoded local data, no Supabase calls. Match spacing/typography/colors to the mockup."],
+    ["Test the UI in isolation","No console errors, all states tested, both platforms, no dead tap targets."],
+    ["Cross-reference the data model","Confirm exact tables/columns against the schema before writing backend code."],
+    ["Create/update Supabase tables","Write the migration, enable RLS, write and test policies."],
+    ["Build the backend access layer","Supabase client calls in a dedicated hooks/services layer, never inline in components."],
+    ["Wire the real backend in","Replace mock data with real hooks; re-verify all UI states still render correctly."],
+    ["Test integration end-to-end","Real test account, confirm the row lands correctly in Supabase Table Editor."],
+    ["Test edge cases","Invalid input, network failure, RLS rejection, duplicate submits."],
+    ["Test role-based behavior","Log in as member and admin where relevant, confirm each sees only what they should."],
+    ["Sign off","Re-check every box genuinely, note anything deliberately deferred, then move on."]
+  ];
+  document.getElementById("implSteps").innerHTML =
+    '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font:500 13px/1.6 \'Public Sans\'">' +
+    steps.map(function(s){ return '<li><strong>'+s[0]+'</strong> — '+s[1]+'</li>'; }).join("") + '</ol>';
+}
+
+/* ============ Prompts view render ============ */
+function renderPrompts(){
+  var body = document.getElementById("promptsBody");
+  var html = "";
+  PHASES.forEach(function(phase){
+    phase.screens.forEach(function(scr){
+      html += '<div class="prompt-card"><div class="ph">'+phase.name+' · '+scr.name+'</div>' +
+        '<div class="prompt-box" style="max-height:220px">'+ (PROMPTS[scr.key]||"") +'</div>' +
+        '<button class="copy-btn" data-key="'+scr.key+'">Copy prompt</button></div>';
+    });
+  });
+  body.innerHTML = html;
+  body.querySelectorAll(".copy-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var text = PROMPTS[btn.dataset.key] || "";
+      var self = btn;
+      function ok(){ self.textContent="Copied ✓"; self.classList.add("copied"); setTimeout(function(){ self.textContent="Copy prompt"; self.classList.remove("copied"); },1600); }
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok).catch(function(){ fallbackCopy(text, ok); }); }
+      else { fallbackCopy(text, ok); }
+    });
+  });
+}
+
+/* ============ Tracker view render ============ */
+function renderTracker(){
+  var body = document.getElementById("trackerBody");
+  body.innerHTML = "";
+  PHASES.forEach(function(phase,pIdx){
+    var phaseHead = document.createElement("h3");
+    phaseHead.style.cssText="margin:18px 0 2px;font:800 14px 'Public Sans'";
+    phaseHead.textContent = phase.name+" — "+phase.sub;
+    body.appendChild(phaseHead);
+
+    phase.screens.forEach(function(scr,sIdx){
+      var scrEl = document.createElement("div");
+      scrEl.className = "t-screen";
+      scrEl.dataset.key = scr.key;
+      var st = countTotals(pIdx,sIdx);
+      var head = document.createElement("div");
+      head.className = "t-screen-head";
+      head.innerHTML = '<span class="name">'+scr.name+'</span><span class="t-count">'+st.done+'/'+st.total+'</span>';
+      head.addEventListener("click", function(){ scrEl.classList.toggle("open"); });
+      scrEl.appendChild(head);
+
+      var itemsWrap = document.createElement("div");
+      itemsWrap.className = "t-items";
+
+      scr.groups.forEach(function(g,gIdx){
+        var lbl = document.createElement("div"); lbl.className="t-group-label"; lbl.textContent=g.label;
+        itemsWrap.appendChild(lbl);
+        g.items.forEach(function(text,iIdx){
+          var id = itemId(pIdx,sIdx,gIdx,iIdx);
+          var rec = state[id] || {checked:false,note:"",updated_by:"",updated_at:""};
+
+          var row = document.createElement("div");
+          row.className = "t-item"+(rec.checked?" done":"");
+          var cb = document.createElement("input"); cb.type="checkbox"; cb.checked=!!rec.checked; cb.id="tcb-"+id;
+          var l = document.createElement("label"); l.htmlFor=cb.id; l.textContent=text;
+          var noteBtn = document.createElement("button"); noteBtn.className="t-note-toggle"; noteBtn.type="button";
+          noteBtn.textContent = rec.note ? "note ●" : "+ note";
+          row.appendChild(cb); row.appendChild(l); row.appendChild(noteBtn);
+          itemsWrap.appendChild(row);
+
+          var meta = document.createElement("div"); meta.className="t-meta";
+          if(rec.checked && rec.updated_by) meta.textContent = "checked by "+rec.updated_by+(rec.updated_at?" · "+fmtWhen(rec.updated_at):"");
+          itemsWrap.appendChild(meta);
+
+          var noteArea = document.createElement("div"); noteArea.className="t-note-area";
+          var ta = document.createElement("textarea"); ta.placeholder="Notes…"; ta.value=rec.note||"";
+          var svBtn = document.createElement("button"); svBtn.className="sv"; svBtn.type="button"; svBtn.textContent="Save note";
+          noteArea.appendChild(ta); noteArea.appendChild(svBtn);
+          itemsWrap.appendChild(noteArea);
+          noteBtn.addEventListener("click", function(){ noteArea.classList.toggle("open"); });
+
+          cb.addEventListener("change", async function(){
+            var patch = {checked:cb.checked, note:ta.value, updated_by:deviceName||"unknown"};
+            state[id] = Object.assign({}, rec, patch, {updated_at:new Date().toISOString()});
+            saveLocalCache();
+            row.classList.toggle("done", cb.checked);
+            meta.textContent = cb.checked && deviceName ? "checked by "+deviceName+" · "+fmtWhen(state[id].updated_at) : "";
+            renderTopStats(); refreshHeadCounts();
+            setStatus("syncing","Saving…");
+            try{ await upsertRemote(id, patch); setStatus("synced","Synced with Supabase"); }
+            catch(e){ setStatus("offline","Saved locally — couldn't reach Supabase"); }
+          });
+          svBtn.addEventListener("click", async function(){
+            var patch = {checked:cb.checked, note:ta.value, updated_by:deviceName||"unknown"};
+            state[id] = Object.assign({}, rec, patch, {updated_at:new Date().toISOString()});
+            saveLocalCache();
+            noteBtn.textContent = ta.value ? "note ●" : "+ note";
+            setStatus("syncing","Saving note…");
+            try{ await upsertRemote(id, patch); setStatus("synced","Synced with Supabase"); }
+            catch(e){ setStatus("offline","Saved locally — couldn't reach Supabase"); }
+          });
+        });
+      });
+
+      scrEl.appendChild(itemsWrap);
+      body.appendChild(scrEl);
+    });
+  });
+}
+function refreshHeadCounts(){
+  document.querySelectorAll(".t-screen").forEach(function(el){
+    var key = el.dataset.key; var st = countForScreenKey(key);
+    var c = el.querySelector(".t-count"); if(c) c.textContent = st.done+"/"+st.total;
+  });
+  document.querySelectorAll(".node").forEach(function(el){
+    var key = el.dataset.key; var st = countForScreenKey(key);
+    var s = el.querySelector(".node-stat.prog"); if(s) s.textContent = st.done+"/"+st.total;
+  });
+}
+
+/* ============ Top ring / overview stats refresh ============ */
+function renderTopStats(){
+  var overall = countTotals();
+  var pct = overall.total ? Math.round(overall.done/overall.total*100) : 0;
+  document.getElementById("ringPct").textContent = pct+"%";
+  var circumference = 113;
+  document.getElementById("ringFill").setAttribute("stroke-dashoffset", circumference - (circumference*pct/100));
+  renderOverview();
+}
+
+/* ============ Full re-render (after remote sync) ============ */
+function renderAll(){
+  renderOverview();
+  renderFlow();
+  renderTracker();
+  renderTopStats();
+}
+
+/* ============ View switching ============ */
+var VIEW_META = {
+  overview:{eyebrow:"Overview",title:"Project summary"},
+  flow:{eyebrow:"Flow Map",title:"Screen build order & data mapping"},
+  schema:{eyebrow:"Reference",title:"Database Schema"},
+  impl:{eyebrow:"Reference",title:"Implementation Flow"},
+  prompts:{eyebrow:"Reference",title:"Screen Prompts"},
+  tracker:{eyebrow:"Tracking",title:"Build Tracker"}
+};
+function switchView(name){
+  document.querySelectorAll(".nav-item").forEach(function(el){ el.classList.toggle("active", el.dataset.view===name); });
+  document.querySelectorAll(".view").forEach(function(el){ el.classList.toggle("active", el.id==="view-"+name); });
+  document.getElementById("viewEyebrow").textContent = VIEW_META[name].eyebrow;
+  document.getElementById("viewTitle").textContent = VIEW_META[name].title;
+}
+document.querySelectorAll(".nav-item").forEach(function(btn){
+  btn.addEventListener("click", function(){ switchView(btn.dataset.view); });
+});
+
+/* ============ Device modal ============ */
+var deviceModal = document.getElementById("deviceModal");
+document.getElementById("deviceLink").addEventListener("click", function(){
+  document.getElementById("deviceName").value = deviceName; deviceModal.classList.add("open");
+});
+document.getElementById("deviceCancel").addEventListener("click", function(){ deviceModal.classList.remove("open"); });
+document.getElementById("deviceSave").addEventListener("click", function(){
+  var name = document.getElementById("deviceName").value.trim();
+  if(!name){ alert("Please enter a name or label."); return; }
+  deviceName = name; saveDeviceName(name);
+  document.getElementById("deviceLabelText").textContent = name;
+  deviceModal.classList.remove("open");
+});
+
+/* ============ Init ============ */
+loadLocalCache();
+deviceName = loadDeviceName();
+if(deviceName) document.getElementById("deviceLabelText").textContent = deviceName;
+renderAll();
+renderSchema();
+renderImpl();
+renderPrompts();
+if(!deviceName) deviceModal.classList.add("open");
+refreshFromRemote();
+
+})();
+</script>
+</body>
+</html>
