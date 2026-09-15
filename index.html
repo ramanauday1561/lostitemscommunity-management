@@ -69,6 +69,24 @@ button{font-family:inherit;cursor:pointer}
 
 .gap-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .gap-item{display:flex;gap:10px;padding:10px 12px;background:var(--card);border-radius:12px;font:500 12.5px/1.55 'Public Sans';color:var(--ink)}
+.gap-item.resolved{background:#F4FBF6;color:#0F7B3D}
+.gap-item.resolved .n{background:var(--green,#0F7B3D)}
+.impl-phase{margin:22px 0 8px;font:800 13px 'Public Sans';color:var(--ink)}
+.impl-phase span{font-weight:500;color:var(--muted)}
+.si-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--line,#E7E7E3);border-radius:12px;margin-bottom:8px}
+.si-main{flex:1;min-width:0}
+.si-name{font:700 13.5px 'Public Sans';color:var(--ink)}
+.si-tables{font:500 11px 'IBM Plex Mono';color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si-badge{flex:none;font:800 9.5px 'Public Sans';letter-spacing:.5px;padding:3px 8px;border-radius:999px}
+.si-badge.done{background:#F4FBF6;color:#0F7B3D}
+.si-badge.partial{background:#FFF7E8;color:#8A5A00}
+.si-badge.todo{background:#F2F2F0;color:#6B7280}
+.si-play{flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--line,#E7E7E3);background:#fff;color:#0B6BCB;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.si-play:hover{background:#E8F1FB;border-color:#0B6BCB}
+.si-play.copied{background:#0F7B3D;border-color:#0F7B3D;color:#fff}
+.si-prompt{display:none;white-space:pre-wrap;font:500 11.5px/1.6 'IBM Plex Mono';color:var(--ink);background:#FAFAF8;border:1px solid var(--line,#E7E7E3);border-radius:10px;padding:14px;margin:-4px 0 10px}
+.si-prompt.open{display:block}
+.si-toggle{flex:none;background:none;border:none;color:var(--muted);font:600 11px 'Public Sans';cursor:pointer;text-decoration:underline}
 .gap-item .n{flex:none;width:20px;height:20px;border-radius:6px;background:var(--amber);color:#fff;font:700 10px 'IBM Plex Mono';display:flex;align-items:center;justify-content:center}
 
 /* Flow map */
@@ -204,6 +222,10 @@ details.tbl-details[open] summary:before{content:"▾ "}
       <button class="nav-item" data-view="prompts"><span class="ic">▸</span>Screen Prompts</button>
     </div>
     <div class="nav-group">
+      <div class="label">Build</div>
+      <button class="nav-item" data-view="screenimpl"><span class="ic">▶</span>Screen Implementation</button>
+    </div>
+    <div class="nav-group">
       <div class="label">Tracking</div>
       <button class="nav-item" data-view="tracker"><span class="ic">☑</span>Build Tracker</button>
     </div>
@@ -282,6 +304,15 @@ details.tbl-details[open] summary:before{content:"▾ "}
           <h2>Screen Prompts</h2>
           <p class="desc">Copy one at a time into your coding assistant. Each is self-contained and follows the 11-step checklist.</p>
           <div id="promptsBody"></div>
+        </div>
+      </div>
+
+      <!-- SCREEN IMPLEMENTATION -->
+      <div class="view" id="view-screenimpl">
+        <div class="panel-card">
+          <h2>Screen Implementation</h2>
+          <p class="desc">Press <strong>&#9654;</strong> on a screen to copy a complete build prompt for it &mdash; fetching, creating and testing, written against the live Supabase schema and the real file paths in <code>lostitemscommunity-app</code>. Paste it into Claude Code and it will build that screen.</p>
+          <div id="screenImplBody"></div>
         </div>
       </div>
 
@@ -834,10 +865,13 @@ var SCHEMA = [
   {group:"Identity & Profile", tables:[
     {name:"profiles",desc:"Extends auth.users 1:1, created via trigger.",cols:[
       ["id","uuid PK","= auth.users.id"],["username","text unique","display name"],["full_name","text",""],
-      ["email","text","denormalized"],["avatar_url","text","nullable"],["role","enum member/admin",""],
-      ["city","text","nullable"],["phone","text","nullable"],["notification_prefs","jsonb",""],
+      ["avatar_url","text","nullable"],["role","enum member/admin",""],
+      ["city","text","nullable"],["notification_prefs","jsonb",""],
       ["contact_sharing_pref","enum after_match/always/never",""],["guidelines_accepted_at","timestamptz","nullable"],
-      ["is_suspended","boolean","default false"]
+      ["guidelines_version","int","nullable — re-acceptance"],["is_suspended","boolean","default false"]
+    ]},
+    {name:"profile_contacts",desc:"RESOLVED gap 3 — phone/email live here, not on profiles. RLS: owner or admin only. Other members reach them solely via get_contact_info(), which honours contact_sharing_pref.",cols:[
+      ["user_id","uuid PK FK profiles",""],["phone","text","nullable"],["email","text","nullable"],["updated_at","timestamptz",""]
     ]},
     {name:"device_tokens",desc:"Missing from mockup — needed for push notifications.",cols:[
       ["id","uuid PK",""],["user_id","uuid FK profiles",""],["token","text","Expo/FCM/APNs"],["platform","enum ios/android",""]
@@ -850,14 +884,22 @@ var SCHEMA = [
       ["kind","enum lost/found",""],["title","text",""],["description","text",""],["category_id","uuid FK categories","nullable"],
       ["location_text","text",""],["latitude","numeric(9,6)","nullable"],["longitude","numeric(9,6)","nullable"],
       ["date_occurred","date",""],["status","enum active/resolved/removed",""],["moderation_status","enum pending/approved/removed",""],
-      ["matched_item_id","uuid FK items","nullable — see Gaps"],["flagged_count","int","default 0"]
+      ["flagged_count","int","default 0"],["search_tsv","tsvector","generated, GIN indexed"]
     ]},
-    {name:"item_photos",desc:"",cols:[["id","uuid PK",""],["item_id","uuid FK items",""],["storage_path","text",""],["sort_order","int",""]]}
+    {name:"item_photos",desc:"Supabase Storage bucket item-photos, public read, uploads namespaced by <uid>/.",cols:[["id","uuid PK",""],["item_id","uuid FK items",""],["storage_path","text",""],["sort_order","int",""]]},
+    {name:"item_matches",desc:"RESOLVED gap 2 — replaces items.matched_item_id. A proposal is inert; confirming it resolves BOTH items via trigger. A trigger also rejects a pair that is not genuinely lost+found.",cols:[
+      ["id","uuid PK",""],["lost_item_id","uuid FK items","must be kind=lost"],["found_item_id","uuid FK items","must be kind=found"],
+      ["proposed_by","uuid FK profiles","nullable"],["status","enum proposed/confirmed/rejected",""],["note","text","nullable"],
+      ["confirmed_by","uuid FK profiles","nullable if account deleted"],["confirmed_at","timestamptz","required when confirmed"]
+    ]}
   ]},
   {group:"Messaging", tables:[
     {name:"conversations",desc:"",cols:[["id","uuid PK",""],["item_id","uuid FK items","nullable"],["last_message_at","timestamptz",""]]},
     {name:"conversation_participants",desc:"",cols:[["conversation_id","uuid FK conversations","composite PK"],["user_id","uuid FK profiles",""],["last_read_at","timestamptz","nullable"]]},
-    {name:"messages",desc:"",cols:[["id","uuid PK",""],["conversation_id","uuid FK conversations",""],["sender_id","uuid FK profiles",""],["body","text",""],["is_quick_reply","boolean","default false"]]}
+    {name:"messages",desc:"",cols:[["id","uuid PK",""],["conversation_id","uuid FK conversations",""],["sender_id","uuid FK profiles",""],["body","text",""],["is_quick_reply","boolean","default false"],["is_removed","boolean","soft delete"]]},
+    {name:"contact_reveals",desc:"RESOLVED gap 3 — the mockup's manual 'Share contact' action. One row = this member revealed their details to that member in that conversation.",cols:[
+      ["id","uuid PK",""],["conversation_id","uuid FK conversations",""],["from_user_id","uuid FK profiles","the one sharing"],["to_user_id","uuid FK profiles",""],["revealed_at","timestamptz",""]
+    ]}
   ]},
   {group:"Community Forum", tables:[
     {name:"forum_threads",desc:"",cols:[["id","uuid PK",""],["author_id","uuid FK profiles",""],["topic","text",""],["title","text",""],["body","text",""],["helpful_count","int","default 0"],["is_suspended","boolean","default false"],["is_removed","boolean","default false"]]},
@@ -865,8 +907,10 @@ var SCHEMA = [
     {name:"forum_helpful_votes",desc:"Composite PK prevents double-voting.",cols:[["thread_id","uuid FK forum_threads","composite PK"],["user_id","uuid FK profiles",""]]}
   ]},
   {group:"Moderation (Admin)", tables:[
-    {name:"moderation_flags",desc:"Generic flag table feeding the single Moderation Queue screen.",cols:[
-      ["id","uuid PK",""],["target_type","enum item/forum_thread/forum_reply/profile",""],["target_id","uuid","see Gaps re: FK design"],
+    {name:"moderation_flags",desc:"RESOLVED gap 1 — four explicit nullable FKs with a check constraint requiring exactly one. Postgres now enforces referential integrity, and target_type is a GENERATED column so it can never drift.",cols:[
+      ["id","uuid PK",""],["item_id","uuid FK items","nullable"],["thread_id","uuid FK forum_threads","nullable"],
+      ["reply_id","uuid FK forum_replies","nullable"],["profile_id","uuid FK profiles","nullable"],
+      ["target_type","text","GENERATED from whichever FK is set"],
       ["reason","text",""],["flagged_by","uuid FK profiles","nullable = system"],["status","enum pending/approved/removed",""],
       ["reviewed_by","uuid FK profiles","nullable, admin"],["reviewed_at","timestamptz","nullable"]
     ]},
@@ -887,15 +931,15 @@ var SCHEMA = [
 ];
 
 var GAPS = [
-  "Polymorphic moderation_flags.target_id — use explicit nullable FK columns (item_id/thread_id/reply_id) with a check constraint, not a single untyped column.",
-  "Lost↔found matching has no schema yet — decide between a simple matched_item_id self-reference or a separate item_matches table with confirmation state.",
-  "Contact info exposure (contact_sharing_pref) exists but nothing enforces it — decide if reveal is automatic on match or manual per-message (mockup implies manual).",
-  "Push notifications need device_tokens + notifications tables (added above) — confirm you actually want push before building it.",
-  "No rate limiting / spam prevention on item or forum post creation — worth a daily-count check via trigger or Edge Function.",
-  "guidelines_accepted_at is a single timestamp — add a version column if guidelines will ever change and need re-acceptance.",
-  "Admin 'Delete post' in the mockup implies hard delete — use soft delete (is_removed / moderation_status='removed') everywhere instead.",
-  "item_photos assumes Supabase Storage with no abuse-image scanning — decide if that matters for v1.",
-  "No full-text search yet — plan for a tsvector column + GIN index on items/forum_threads once data volume grows."
+  "RESOLVED \u2014 Polymorphic moderation_flags.target_id: now four explicit nullable FKs (item_id/thread_id/reply_id/profile_id) with a check constraint requiring exactly one, plus a GENERATED target_type that cannot drift.",
+  "RESOLVED \u2014 Lost/found matching: items.matched_item_id is gone, replaced by the item_matches table with proposed/confirmed/rejected state. A proposal is inert; confirming resolves both items. A trigger rejects any pair that is not genuinely lost+found.",
+  "RESOLVED \u2014 Contact exposure: phone/email moved off profiles into profile_contacts (owner-or-admin RLS). Other members reach them only through get_contact_info(), which honours contact_sharing_pref: never for 'never', freely for 'always', and for 'after_match' only after a confirmed match or an explicit contact_reveals row.",
+  "RESOLVED \u2014 Soft delete is the default everywhere (items.status/moderation_status, forum_threads.is_removed, forum_replies.is_removed, messages.is_removed). Admin 'delete' must set these, never hard DELETE.",
+  "Push notifications: device_tokens and notifications are deployed but nothing writes to them yet, and Expo Go cannot receive remote push. Deferred until the app moves to an EAS development build.",
+  "No rate limiting / spam prevention on item or forum post creation \u2014 worth a daily-count check via trigger or Edge Function.",
+  "item_photos assumes Supabase Storage with no abuse-image scanning \u2014 decide if that matters for v1.",
+  "Full-text search columns (items.search_tsv, forum_threads.search_tsv) exist with GIN indexes, but the Registry screen still uses ILIKE. Switch to websearch_to_tsquery once volume justifies it.",
+  "Deleting an item leaves its conversation behind with item_id set to null. Decide whether to cascade the conversation or show it as 'item withdrawn'."
 ];
 
 /* ============ Supabase-backed tracker state ============ */
@@ -976,6 +1020,7 @@ function renderOverview(){
     return '<div class="stat"><div class="num">'+s.num+'</div><div class="lbl">'+s.lbl+'</div></div>';
   }).join("");
   document.getElementById("gapList").innerHTML = GAPS.map(function(g,i){
+    if(g.indexOf("RESOLVED")===0) return '<div class="gap-item resolved"><span class="n">\u2713</span><span>'+g+'</span></div>';
     return '<div class="gap-item"><span class="n">'+(i+1)+'</span><span>'+g+'</span></div>';
   }).join("");
 }
@@ -1158,6 +1203,173 @@ function renderPrompts(){
 }
 
 /* ============ Tracker view render ============ */
+/* ============ Screen Implementation view ============ */
+
+var APP_REPO   = "ramanauday1561/lostitemscommunity-app";
+var APP_BRANCH = "claude/gracious-meitner-5d60k2";
+var SB_URL     = "https://rxplhljuaqdpghvarjbb.supabase.co";
+
+/* Per-table facts the build prompt needs to be correct. */
+var TABLE_FACTS = {
+  profiles:"profiles(id=auth.users.id, username, full_name, avatar_url, city, role member|admin, contact_sharing_pref after_match|always|never, is_suspended). NO phone/email here. Readable by any signed-in member. A trigger creates the row on signup.",
+  profile_contacts:"profile_contacts(user_id PK, phone, email). RLS: owner or admin ONLY. Never select this for another member - call rpc('get_contact_info',{target_user,conv_id}) instead.",
+  categories:"categories(id,name,icon,sort_order). 12 rows seeded. Read-only for members.",
+  items:"items(id, short_code, reporter_id, kind lost|found, title, description, category_id, location_text, latitude, longitude, date_occurred, status active|resolved|removed, moderation_status, flagged_count, search_tsv). DO NOT send short_code on insert - a BEFORE INSERT trigger assigns LOST-#### / FOUND-####. RLS: insert only with reporter_id = your own uid AND an unsuspended account.",
+  item_photos:"item_photos(id,item_id,storage_path,sort_order). Storage bucket 'item-photos', public read, upload path MUST be `${uid}/${filename}` or RLS rejects it.",
+  item_matches:"item_matches(id, lost_item_id, found_item_id, proposed_by, status proposed|confirmed|rejected, note, confirmed_by, confirmed_at). lost_item_id must be kind=lost and found_item_id kind=found - a trigger enforces it. Setting status='confirmed' (with confirmed_at) resolves BOTH items automatically; do not update items.status yourself.",
+  conversations:"conversations(id,item_id,last_message_at). Visible only to participants. last_message_at is maintained by a trigger on messages - never set it manually.",
+  conversation_participants:"conversation_participants(conversation_id,user_id,last_read_at) composite PK. Drives unread badges.",
+  messages:"messages(id,conversation_id,sender_id,body,is_quick_reply,is_removed). Insert requires sender_id = your uid, membership of the conversation, and an unsuspended account.",
+  contact_reveals:"contact_reveals(id,conversation_id,from_user_id,to_user_id,revealed_at). This is the manual 'Share my contact details' action. Insert with from_user_id = your own uid.",
+  forum_threads:"forum_threads(id,author_id,topic,title,body,helpful_count,is_suspended,is_removed,moderation_status,search_tsv). helpful_count is maintained by a trigger on forum_helpful_votes - never write it directly.",
+  forum_replies:"forum_replies(id,thread_id,author_id,body,is_removed).",
+  forum_helpful_votes:"forum_helpful_votes(thread_id,user_id) composite PK, so double-voting is impossible. Insert to vote, delete to un-vote; helpful_count follows automatically.",
+  moderation_flags:"moderation_flags(id, item_id, thread_id, reply_id, profile_id, reason, flagged_by, status pending|approved|removed, reviewed_by, reviewed_at, target_type GENERATED). Set EXACTLY ONE of the four FK columns - a check constraint enforces it. Members see only their own flags; admins see all.",
+  admin_audit_log:"admin_audit_log(id,admin_id,action_type,target_type,target_id,notes). Admin-only. Write a row for every moderation action.",
+  support_tickets:"support_tickets(id,user_id,status bot|escalated|closed,subject).",
+  support_messages:"support_messages(id,ticket_id,sender user|bot|agent,body).",
+  faqs:"faqs(id,question,answer,sort_order,is_published). 6 rows seeded.",
+  ad_campaigns:"ad_campaigns(id,short_code,advertiser_name,campaign_name,screen_slot home|registry|forum|report_success,format,image_path,target_url,start_date,end_date,is_live). Members see only live, in-window campaigns.",
+  ad_stats:"ad_stats(id,campaign_id,date,impressions,clicks,revenue) unique per campaign+date. Admin-only.",
+  notifications:"notifications(id,user_id,type,title,body,data,is_read). Members read/update only their own; writes come from the backend."
+};
+
+/* route file, current state, and the fetch/create/test shape of each screen */
+var SCREEN_IMPL = {
+  setup:      {route:"-",                          status:"done",    fetch:"-", create:"-", test:"App boots in Expo Go on iOS and Android."},
+  welcome:    {route:"app/(auth)/welcome.tsx",     status:"done",    fetch:"none", create:"none", test:"Swipe all 3 slides; Skip and Sign in both reach Login."},
+  login:      {route:"app/(auth)/login.tsx",       status:"done",    fetch:"none", create:"supabase.auth.signInWithPassword", test:"Wrong password shows an inline error; correct one lands on the Registry."},
+  signup:     {route:"app/(auth)/signup.tsx",      status:"done",    fetch:"none", create:"supabase.auth.signUp", test:"New account creates a profiles row AND a profile_contacts row via trigger."},
+  forgot:     {route:"app/(auth)/forgot.tsx",      status:"done",    fetch:"none", create:"resetPasswordForEmail", test:"Unknown address still shows the neutral 'if an account exists' message."},
+  home:       {route:"app/(tabs)/index.tsx",       status:"done",    fetch:"items + embedded categories, status=active, newest first, limit 50", create:"none", test:"Search, lost/found filter, pull-to-refresh, empty state and error state all render."},
+  itemdetail: {route:"app/item/[id].tsx",          status:"partial", fetch:"one item + categories + reporter profile", create:"conversation + first message (Phase 3)", test:"Unknown id shows the not-found state, not a crash.", todo:"Add item_photos carousel and the 'Message the finder' CTA."},
+  report:     {route:"app/(tabs)/report.tsx",      status:"partial", fetch:"categories", create:"insert into items (NO short_code)", test:"Submitting shows the trigger-assigned short code.", todo:"Add expo-image-picker upload into item-photos at ${uid}/${uuid}.jpg plus item_photos rows."},
+  success:    {route:"app/(tabs)/report.tsx",      status:"done",    fetch:"none", create:"none", test:"Both actions work: view in registry, and report another."},
+  inbox:      {route:"app/(tabs)/inbox.tsx",       status:"todo",    fetch:"conversations + participants + last message, ordered by last_message_at", create:"none", test:"Unread counts derive from last_read_at."},
+  chat:       {route:"app/chat/[id].tsx (new)",    status:"todo",    fetch:"messages for the conversation, ascending", create:"insert message; update last_read_at; optional contact_reveals row", test:"Realtime subscription delivers the other side's message without a refresh."},
+  forum:      {route:"app/(tabs)/forum.tsx",       status:"todo",    fetch:"forum_threads where is_removed=false, by topic", create:"insert thread", test:"A new thread appears at the top straight away."},
+  thread:     {route:"app/thread/[id].tsx (new)",  status:"todo",    fetch:"thread + replies + whether you voted", create:"insert reply; insert/delete forum_helpful_votes", test:"Voting twice is impossible; helpful_count tracks the trigger."},
+  profile:    {route:"app/(tabs)/profile.tsx",     status:"partial", fetch:"own profile + profile_contacts", create:"update profile, avatar upload", test:"contact_sharing_pref saves and persists across a restart.", todo:"Make the fields editable and add avatar upload."},
+  support:    {route:"app/support.tsx (new)",      status:"todo",    fetch:"faqs, own tickets + messages", create:"insert ticket + messages", test:"FAQ list renders; escalating flips status to 'escalated'."},
+  dashboard:  {route:"app/admin/index.tsx (new)",  status:"todo",    fetch:"counts of items, threads, pending flags", create:"none", test:"A non-admin account cannot reach the screen at all."},
+  moderation: {route:"app/admin/moderation.tsx",   status:"todo",    fetch:"pending moderation_flags with their targets", create:"update flag status; write admin_audit_log", test:"Approving/removing SOFT-deletes (sets is_removed / moderation_status)."},
+  members:    {route:"app/admin/members.tsx",      status:"todo",    fetch:"profiles list with search", create:"toggle is_suspended; write audit row", test:"A suspended member can still read but can no longer post anything."},
+  ads:        {route:"app/admin/ads.tsx",          status:"todo",    fetch:"ad_campaigns", create:"insert/update campaign", test:"Only live, in-window campaigns are visible to a member account."},
+  analytics:  {route:"app/admin/analytics.tsx",    status:"todo",    fetch:"ad_stats rollups, flag counts", create:"none", test:"Empty ranges render zeroes rather than NaN."}
+};
+
+function implPrompt(phase, scr){
+  var m = SCREEN_IMPL[scr.key] || {};
+  var tables = (scr.tables && scr.tables.length) ? scr.tables : [];
+  var facts = tables.map(function(t){ return "- " + (TABLE_FACTS[t] || t); }).join("\n");
+
+  var lines = [];
+  lines.push("Build the \"" + scr.name + "\" screen of the Lost Items Community mobile app.");
+  lines.push("");
+  lines.push("REPO      " + APP_REPO + "  (branch " + APP_BRANCH + ")");
+  lines.push("STACK     Expo SDK 57, React Native 0.86, expo-router, TypeScript strict, @supabase/supabase-js v2");
+  lines.push("BACKEND   " + SB_URL + "  (RLS is enabled on every table)");
+  lines.push("PHASE     " + phase.name);
+  lines.push("FILE      " + (m.route || "decide a sensible route"));
+  if (m.status === "partial" && m.todo) {
+    lines.push("");
+    lines.push("THIS SCREEN ALREADY EXISTS. Do not rewrite it - extend it: " + m.todo);
+  }
+  lines.push("");
+  lines.push("REUSE, DO NOT REINVENT");
+  lines.push("- Colours/spacing/type: src/theme/tokens.ts. Never hard-code a hex value.");
+  lines.push("- Button, Field, Card, Pill, Loading, ErrorState, EmptyState: src/components/ui.tsx.");
+  lines.push("- Session and current user: useAuth() from src/lib/auth.tsx.");
+  lines.push("- Supabase client: src/lib/supabase.ts (already persists sessions to AsyncStorage).");
+  lines.push("- Match the visual language of the prototype: AppDesign/Lost Items App v3 (native).dc.html.");
+  lines.push("");
+  if (facts) {
+    lines.push("SCHEMA (this is the deployed truth - trust it over any older doc)");
+    lines.push(facts);
+    lines.push("");
+  }
+  lines.push("FETCHING");
+  lines.push("- " + (m.fetch || "none"));
+  lines.push("- Handle all four states explicitly: loading, error (show the message + a retry), empty, and populated.");
+  lines.push("- Select named columns, never select('*').");
+  lines.push("");
+  lines.push("CREATING");
+  lines.push("- " + (m.create || "none"));
+  lines.push("- Let database triggers own generated values (short codes, counters, last_message_at). Never write them from the client.");
+  lines.push("- Disable the submit control while in flight and surface failures inline rather than in an alert.");
+  lines.push("");
+  lines.push("TESTING (all of these must actually pass before you call it done)");
+  lines.push("1. npm run lint                     # tsc --noEmit, must be clean");
+  lines.push("2. npx expo export --platform ios   # the bundle must build");
+  lines.push("3. " + (m.test || "Exercise the screen end to end in Expo Go."));
+  lines.push("4. Confirm RLS behaves: a second account must not see or change anything it should not.");
+  lines.push("5. Check the screen at small-phone width; nothing may overflow horizontally.");
+  lines.push("");
+  lines.push("DONE MEANS");
+  lines.push("- TypeScript strict passes with no new `any`.");
+  lines.push("- The screen works against the live database, not mock data.");
+  lines.push("- Committed to " + APP_BRANCH + " with a message explaining what changed and why.");
+  lines.push("- Report honestly what you did NOT finish.");
+  return lines.join("\n");
+}
+
+function renderScreenImpl(){
+  var body = document.getElementById("screenImplBody");
+  var html = "";
+  PHASES.forEach(function(phase){
+    html += '<div class="impl-phase">' + phase.name + ' <span>' + phase.sub + '</span></div>';
+    phase.screens.forEach(function(scr){
+      var m = SCREEN_IMPL[scr.key] || {};
+      var st = m.status || "todo";
+      var label = st === "done" ? "BUILT" : st === "partial" ? "PARTIAL" : "TO BUILD";
+      var tbl = (scr.tables && scr.tables.length) ? scr.tables.join(", ") : (m.route || "no tables");
+      html +=
+        '<div class="si-row">' +
+          '<div class="si-main">' +
+            '<div class="si-name">' + scr.name + '</div>' +
+            '<div class="si-tables">' + tbl + '</div>' +
+          '</div>' +
+          '<span class="si-badge ' + st + '">' + label + '</span>' +
+          '<button class="si-toggle" data-toggle="' + scr.key + '">view</button>' +
+          '<button class="si-play" data-impl="' + scr.key + '" title="Copy build prompt">▶</button>' +
+        '</div>' +
+        '<div class="si-prompt" id="si-prompt-' + scr.key + '"></div>';
+    });
+  });
+  body.innerHTML = html;
+
+  function promptFor(key){
+    var found = null;
+    PHASES.forEach(function(phase){
+      phase.screens.forEach(function(scr){ if(scr.key === key) found = implPrompt(phase, scr); });
+    });
+    return found || "";
+  }
+
+  body.querySelectorAll("[data-toggle]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var box = document.getElementById("si-prompt-" + btn.dataset.toggle);
+      if(!box.textContent) box.textContent = promptFor(btn.dataset.toggle);
+      var open = box.classList.toggle("open");
+      btn.textContent = open ? "hide" : "view";
+    });
+  });
+
+  body.querySelectorAll("[data-impl]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var text = promptFor(btn.dataset.impl);
+      function ok(){
+        btn.textContent = "✓";
+        btn.classList.add("copied");
+        setTimeout(function(){ btn.textContent = "▶"; btn.classList.remove("copied"); }, 1600);
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(ok).catch(function(){ fallbackCopy(text, ok); });
+      } else { fallbackCopy(text, ok); }
+    });
+  });
+}
+
 function renderTracker(){
   var body = document.getElementById("trackerBody");
   body.innerHTML = "";
@@ -1272,6 +1484,7 @@ var VIEW_META = {
   schema:{eyebrow:"Reference",title:"Database Schema"},
   impl:{eyebrow:"Reference",title:"Implementation Flow"},
   prompts:{eyebrow:"Reference",title:"Screen Prompts"},
+  screenimpl:{eyebrow:"Build",title:"Screen Implementation"},
   tracker:{eyebrow:"Tracking",title:"Build Tracker"}
 };
 function switchView(name){
@@ -1306,6 +1519,7 @@ renderAll();
 renderSchema();
 renderImpl();
 renderPrompts();
+renderScreenImpl();
 if(!deviceName) deviceModal.classList.add("open");
 refreshFromRemote();
 
